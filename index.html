@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineFlix - Film & Dizi Platformu</title>
+<style>
+:root{--bg-color:#141414;--card-bg:#1f1f1f;--text-color:#fff;--text-sub:#b3b3b3;--accent:#e50914;--border:#333}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:var(--bg-color);color:var(--text-color);padding-bottom:20px}
+header{background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);padding:15px 30px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px}
+.logo-area{display:flex;align-items:center;gap:15px}
+.logo{font-size:1.5rem;font-weight:bold;color:var(--accent);cursor:pointer;user-select:none}
+.home-nav-btn,.btn-user{background:#222;color:#fff;border:1px solid var(--border);padding:8px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:bold}
+.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn-admin{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:4px;font-weight:bold;cursor:pointer;font-size:.8rem;display:none}
+.container{max-width:1400px;margin:0 auto;padding:0 20px}
+.type-tabs{display:flex;gap:15px;margin:20px 0;border-bottom:1px solid var(--border);padding-bottom:10px}
+.tab-btn{background:transparent;color:var(--text-sub);border:none;font-size:1.1rem;font-weight:bold;cursor:pointer;padding-bottom:5px}
+.tab-btn.active{color:var(--text-color);border-bottom:3px solid var(--accent)}
+.filter-bar{display:flex;gap:15px;margin-bottom:25px;flex-wrap:wrap}
+.search-input{flex:1;min-width:160px;padding:12px 18px;background:var(--card-bg);border:1px solid var(--border);border-radius:6px;color:#fff;outline:none}
+.movies-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:20px}
+.movie-card{background:var(--card-bg);border-radius:8px;overflow:hidden;cursor:pointer;transition:transform .3s;border:1px solid var(--border);position:relative}
+.movie-card:hover{transform:scale(1.04)}
+.movie-poster{width:100%;height:270px;object-fit:cover}
+.movie-details{padding:12px}
+.movie-title{font-size:.95rem;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.movie-meta{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--text-sub)}
+.movie-meta .g{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lang-badge{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.75);padding:3px 6px;border-radius:4px;font-size:.85rem;border:1px solid var(--border)}
+.pagination{display:flex;justify-content:center;gap:8px;margin:35px 0}
+.page-btn{background:var(--card-bg);color:var(--text-sub);border:1px solid var(--border);padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:bold}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.watch-view{display:none;max-width:1000px;margin:20px auto}
+.back-btn{background:var(--card-bg);color:#fff;border:1px solid var(--border);padding:8px 16px;border-radius:6px;cursor:pointer;margin-bottom:20px;font-weight:bold}
+.player-box{width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:15px;border:1px solid var(--border);position:relative}
+.player-box iframe{width:100%;height:100%;border:none;display:block;position:relative;z-index:999}
+.player-box.pseudo-full{position:fixed;inset:0;width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;z-index:2000;margin:0}
+.click-shield{position:absolute;inset:0;z-index:1001;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;font-weight:bold;text-shadow:0 0 6px #000}
+.fs-btn{position:absolute;top:8px;right:8px;z-index:1002;background:#000a;color:#fff;border:none;padding:6px 10px;border-radius:6px;font-size:.8rem;cursor:pointer}
+.server-switcher{display:flex;gap:10px;margin-bottom:15px;align-items:center;justify-content:space-between}
+.server-btn{background:#222;color:#fff;border:1px solid var(--border);padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:.9rem}
+.server-btn.active,.ep-btn.active{background:var(--accent);border-color:var(--accent)}
+.report-btn{background:#e67e22;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:.85rem}
+.seasons-container,.movie-info-box,.comments-section{background:var(--card-bg);padding:15px;border-radius:8px;margin-bottom:20px;border:1px solid var(--border)}
+.seasons-container{display:none}
+.movie-info-box,.comments-section{padding:20px}
+.season-title{font-size:1rem;margin-bottom:10px;color:var(--accent)}
+.episodes-grid{display:flex;gap:10px;flex-wrap:wrap}
+.ep-btn{background:#111;color:#fff;border:1px solid var(--border);padding:8px 14px;border-radius:6px;cursor:pointer;font-size:.85rem}
+.comment-form{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.comment-form textarea{width:100%;padding:10px;background:#111;border:1px solid var(--border);color:#fff;border-radius:6px;outline:none}
+.comment-card{background:#111;padding:12px;border-radius:6px;margin-bottom:10px;border:1px solid var(--border)}
+.comment-header{display:flex;align-items:center;gap:8px;font-size:.85rem;margin-bottom:6px}
+.user-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover}
+footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;padding:40px 20px 20px;color:var(--text-sub)}
+.footer-content{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:30px;margin-bottom:30px}
+.footer-section h4{color:#fff;margin-bottom:12px;font-size:1.1rem}
+.footer-section p{font-size:.9rem;line-height:1.6}
+.footer-bottom{text-align:center;padding-top:20px;border-top:1px solid #222;font-size:.8rem}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:3000;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto}
+.modal-content{background:var(--card-bg);border-radius:10px;padding:25px;max-width:500px;width:100%;border:1px solid var(--border);position:relative;margin:auto}
+.close-btn{position:absolute;top:15px;right:20px;font-size:24px;cursor:pointer;color:var(--text-sub)}
+.admin-form{display:flex;flex-direction:column;gap:12px;margin-top:15px}
+.admin-form input,.admin-form textarea,.admin-form select{width:100%;padding:12px;background:#111;border:1px solid var(--border);color:#fff;border-radius:6px;outline:none}
+.admin-form button{padding:12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer}
+.cat-label{font-size:.8rem;color:var(--text-sub);margin-bottom:6px;display:block}
+.cat-box{display:flex;flex-wrap:wrap;gap:6px}
+.cat-chip{cursor:pointer}
+.admin-form .cat-chip input{display:none}
+.cat-chip span{display:inline-block;padding:6px 11px;border-radius:16px;background:#111;border:1px solid var(--border);color:var(--text-sub);font-size:.8rem;font-weight:bold}
+.cat-chip input:checked+span{background:var(--accent);border-color:var(--accent);color:#fff}
+.user-list-item{background:#111;padding:10px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border)}
+.server-switcher>div{flex-wrap:wrap}
+.section-title{margin:6px 0 12px;font-size:1.15rem;color:#f5c518}
+.featured-row{display:flex;gap:18px;overflow-x:auto;padding:4px 2px 14px;margin-bottom:10px}
+.featured-row .movie-card{flex:0 0 180px}
+.feat-badge{position:absolute;top:10px;left:10px;z-index:2;background:rgba(0,0,0,.75);padding:3px 6px;border-radius:4px;border:1px solid #f5c518;font-size:.85rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="logo" onclick="checkAdminSecret()">CineFlix</div>
+    <button class="home-nav-btn" onclick="goHome()">🏠 Ana Sayfa</button>
+  </div>
+  <div class="header-actions">
+    <div id="authContainer"><button class="btn-user" onclick="openAuthModal()">🔑 Giriş Yap / Üye Ol</button></div>
+    <button class="btn-admin" onclick="openMovieModal()">➕ Film Ekle</button>
+    <button class="btn-admin" onclick="openSeriesModal()">➕ Dizi Ekle</button>
+    <button class="btn-admin" onclick="openPendingModal()" style="background:#f5c518;color:#000">⏳ Yorumlar & Bildirimler</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="homeView">
+    <div id="featuredSection" style="display:none">
+      <h3 class="section-title">👑 Yöneticinin Seçimi</h3>
+      <div class="featured-row" id="featuredRow"></div>
+    </div>
+    <div class="type-tabs">
+      <button class="tab-btn active" id="tabMovies" onclick="switchTab('movie')">Filmler</button>
+      <button class="tab-btn" id="tabSeries" onclick="switchTab('series')">Diziler</button>
+    </div>
+    <div class="filter-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="İçerik ara..." oninput="searchAndRender()">
+      <select class="search-input" id="catFilter" style="flex:0 0 auto" onchange="searchAndRender()"></select>
+      <select class="search-input" id="sortSelect" style="flex:0 0 auto" onchange="searchAndRender()">
+        <option value="new">En yeni</option>
+        <option value="rating">En yüksek puan</option>
+        <option value="az">A → Z</option>
+      </select>
+    </div>
+    <div class="movies-grid" id="contentGrid"></div>
+    <div class="pagination" id="paginationContainer"></div>
+  </div>
+
+  <div class="watch-view" id="watchView">
+    <button class="back-btn" onclick="goHome()">⬅️ Geri Dön</button>
+    <div class="server-switcher" id="serverSwitcher" style="display:none">
+      <div style="display:flex;gap:10px">
+        <button class="server-btn active" id="dubBtn" onclick="switchServer('dub')">🇹🇷 Türkçe Dublaj</button>
+        <button class="server-btn" id="subBtn" onclick="switchServer('sub')">🇬🇧 Altyazılı</button>
+        <span id="backupBtns" style="display:contents"></span>
+      </div>
+      <button class="report-btn" onclick="openReportModal()">⚠️ Sorun Bildir</button>
+    </div>
+    <div class="player-box" id="playerBox"></div>
+    <div class="seasons-container" id="seasonsContainer">
+      <div class="season-title" id="currentSeasonTitle">Sezon Bölümleri</div>
+      <div class="episodes-grid" id="episodesGrid"></div>
+    </div>
+    <div class="movie-info-box">
+      <h2 id="watchTitle">Başlık</h2>
+      <div class="movie-meta" style="margin:10px 0">
+        <span id="watchGenre" style="color:var(--accent)">Tür</span>
+        <span id="watchLang">Dil</span>
+        <span id="watchImdb" style="color:#f5c518;font-weight:bold">⭐ 8.5</span>
+      </div>
+      <p id="watchDesc">Açıklama...</p>
+      <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-user" onclick="toggleWatchList('plan')">➕ İzleme Listeme Ekle</button>
+        <button class="btn-user" onclick="toggleWatchList('completed')">✅ Bitirdim Olarak İşaretle</button>
+        <button class="btn-admin feature-item-btn" style="background:#f5c518;color:#000" onclick="toggleFeatured()">⭐ Yöneticinin Seçimi Yap</button>
+        <button class="btn-admin edit-item-btn" style="background:#2d8cff" onclick="openEditModal()">✏️ Düzenle</button>
+        <button class="btn-admin delete-item-btn" style="background:#ff4757" onclick="deleteCurrentItem()">🗑️ Bu İçeriği Tamamen Sil</button>
+      </div>
+    </div>
+    <div class="comments-section">
+      <h3>Yorumlar ve Tartışma</h3>
+      <div style="margin-top:15px">
+        <form class="comment-form" onsubmit="submitComment(event)">
+          <textarea id="commentText" rows="3" placeholder="Yorumunuzu yazın (Onaylandıktan sonra görünecektir)..." required></textarea>
+          <button type="submit" style="background:var(--accent);color:#fff;border:none;padding:10px;border-radius:6px;font-weight:bold;cursor:pointer">Yorum Gönder</button>
+        </form>
+      </div>
+      <div id="commentsList" style="margin-top:15px"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-content">
+    <div class="footer-section">
+      <h4>🎬 CineFlix Hakkında</h4>
+      <p>CineFlix, en yeni film ve dizileri en yüksek kalitede, Türkçe Dublaj ve Altyazı seçenekleriyle sinemaseverlere sunan bağımsız bir platformdur.</p>
+    </div>
+    <div class="footer-section">
+      <h4>📬 İletişim & Telif Hakları</h4>
+      <p>Sitemizde yer alan tüm içerikler harici sunucularda barındırılmaktadır. Telif ve iletişim için:</p>
+      <p id="contactMail" style="margin-top:10px;font-weight:bold;color:var(--accent);display:none"></p>
+    </div>
+  </div>
+  <div class="footer-bottom">&copy; 2026 CineFlix Platformu. Tüm hakları saklıdır. · <span id="cloudStatus">💾 Yerel mod</span></div>
+</footer>
+
+<div class="modal" id="reportModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3>⚠️ Oynatıcı Sorunu Bildir</h3>
+  <form class="admin-form" onsubmit="submitReport(event)">
+    <select id="reportType">
+      <option>Video Açılmıyor / Kırık Link</option>
+      <option>Ses veya Görüntü Kayması</option>
+      <option>Yanlış Bölüm / Yanlış İçerik</option>
+      <option>Diğer Sorun</option>
+    </select>
+    <textarea id="reportDetails" rows="3" placeholder="Sorunu kısaca açıklayın..." required></textarea>
+    <button type="submit">Bildirimi Gönder</button>
+  </form>
+</div></div>
+
+<div class="modal" id="authModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3 id="authTitle">Kullanıcı Girişi</h3>
+  <form class="admin-form" onsubmit="handleAuth(event)">
+    <input type="text" id="authUsername" placeholder="Kullanıcı Adı" required>
+    <input type="password" id="authPassword" placeholder="Şifre" required>
+    <div id="avatarInputBox" style="display:none"><input type="url" id="authAvatar" placeholder="Profil Resmi URL (İsteğe Bağlı)"></div>
+    <button type="submit" id="authSubmitBtn">Giriş Yap</button>
+  </form>
+  <p style="margin-top:15px;font-size:.85rem;text-align:center;color:var(--text-sub)">
+    <span id="authToggleText">Hesabınız yok mu?</span>
+    <a href="#" onclick="toggleAuthMode();return false" id="authToggleLink" style="color:var(--accent);font-weight:bold">Üye Olun</a>
+  </p>
+</div></div>
+
+<div class="modal" id="profileModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <div style="text-align:center;margin-bottom:20px">
+    <img id="profImg" src="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)">
+    <h3 id="profUsername" style="margin-top:10px">-</h3>
+    <span id="profRole" style="font-size:.8rem;background:var(--accent);padding:2px 8px;border-radius:4px;font-weight:bold">Üye</span>
+  </div>
+  <h4>📋 İzleme Listem</h4>
+  <div id="profPlanList" style="margin-top:10px;max-height:120px;overflow-y:auto"></div>
+  <h4 style="margin-top:15px">✅ Bitirdiklerim</h4>
+  <div id="profCompletedList" style="margin-top:10px;max-height:120px;overflow-y:auto"></div>
+  <div style="margin-top:20px">
+    <input type="url" id="newAvatarUrl" placeholder="Yeni Profil Resmi URL'si" style="padding:8px;width:100%;background:#111;border:1px solid #333;color:#fff;border-radius:4px;outline:none">
+    <button onclick="updateAvatar()" style="margin-top:8px;width:100%;padding:8px;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold">Profil Resmini Güncelle</button>
+  </div>
+  <button onclick="logout()" style="margin-top:20px;width:100%;padding:10px;background:#ff4757;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold">Çıkış Yap</button>
+</div></div>
+
+<div class="modal" id="movieModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3>Yeni Film Ekle</h3>
+  <form class="admin-form" id="addMovieForm" onsubmit="saveMovie(event)">
+    <div style="display:flex;gap:8px"><input type="text" id="fmImdbId" placeholder="IMDb ID (örn: tt0816692)" style="flex:1"><button type="button" id="fmFillBtn" onclick="autoFill('fm')" style="width:auto;white-space:nowrap">🔎 Otomatik doldur</button></div>
+    <input type="text" id="fmTitle" placeholder="Film Adı" required>
+    <input type="url" id="fmPoster" placeholder="Afiş Görseli URL (Boş bırakılabilir)">
+    <div><span class="cat-label">Kategoriler (birden fazla seçebilirsin):</span><div class="cat-box" id="movieCats"></div></div>
+    <input type="text" id="fmImdb" placeholder="IMDb Puanı (Örn: 8.2)" required>
+    <input type="text" id="fmDubUrl" placeholder="Türkçe Dublaj IMDb ID veya Link (Örn: tt0816692)" required>
+    <input type="text" id="fmSubUrl" placeholder="Altyazı: IMDb ID (tt...) veya Link (boş bırakılabilir)">
+    <textarea id="fmBackups" rows="2" placeholder="Yedek linkler (isteğe bağlı, her satıra bir tane)"></textarea>
+    <textarea id="fmDesc" rows="3" placeholder="Film Özeti" required></textarea>
+    <button type="submit">Filmi Kaydet</button>
+  </form>
+</div></div>
+
+<div class="modal" id="seriesModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3>Dizi / Bölüm Ekle</h3>
+  <form class="admin-form" id="addSeriesForm" onsubmit="saveSeries(event)">
+    <select id="seriesActionType" onchange="toggleSeriesInputs()">
+      <option value="new">Yeni Dizi Oluştur</option>
+      <option value="existing">Mevcut Diziye Bölüm Ekle</option>
+    </select>
+    <div id="newSeriesBox" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:8px"><input type="text" id="smImdbId" placeholder="IMDb ID (örn: tt0816692)" style="flex:1"><button type="button" id="smFillBtn" onclick="autoFill('sm')" style="width:auto;white-space:nowrap">🔎 Otomatik doldur</button></div>
+    <input type="text" id="smTitle" placeholder="Dizi Adı">
+      <input type="url" id="smPoster" placeholder="Afiş Görseli URL (Boş bırakılabilir)">
+      <div><span class="cat-label">Kategoriler (birden fazla seçebilirsin):</span><div class="cat-box" id="seriesCats"></div></div>
+      <input type="text" id="smImdb" placeholder="IMDb Puanı">
+      <textarea id="smDesc" rows="2" placeholder="Dizi Özeti"></textarea>
+    </div>
+    <div id="existingSeriesBox" style="display:none">
+      <select id="targetSeriesSelect"><option value="">-- Önce Yeni Dizi Oluşturun --</option></select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px"><label class="cat-label">Sezon Numarası:</label><input type="number" id="smSeason" value="1" min="1" required></div>
+    <div style="display:flex;flex-direction:column;gap:4px"><label class="cat-label">Bölüm Numarası:</label><input type="number" id="smEpNumber" value="1" min="1" required></div>
+    <input type="text" id="smEpTitle" placeholder="Bölüm Adı (Örn: Pilot)" required>
+    <input type="text" id="smDubUrl" placeholder="Dublaj IMDb ID veya Link (Örn: tt1196946)" required>
+    <input type="text" id="smSubUrl" placeholder="Altyazı: IMDb ID (tt...) veya Link (boş bırakılabilir)">
+    <textarea id="smBackups" rows="2" placeholder="Yedek linkler (isteğe bağlı, her satıra bir tane)"></textarea>
+    <button type="submit" id="seriesSubmitBtn">Yeni Dizi Ekle</button>
+  </form>
+</div></div>
+
+<div class="modal" id="editModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3 id="editHead">✏️ Düzenle</h3>
+  <form class="admin-form" onsubmit="saveEdit(event)">
+    <div style="display:flex;gap:8px"><input type="text" id="edImdbId" placeholder="IMDb ID (örn: tt0816692)" style="flex:1"><button type="button" id="edFillBtn" onclick="autoFill('ed')" style="width:auto;white-space:nowrap">🔎 Otomatik doldur</button></div>
+    <input type="text" id="edTitle" placeholder="Başlık" required>
+    <input type="url" id="edPoster" placeholder="Afiş Görseli URL (Boş bırakılabilir)">
+    <div><span class="cat-label">Kategoriler:</span><div class="cat-box" id="editCats"></div></div>
+    <input type="text" id="edImdb" placeholder="IMDb Puanı">
+    <textarea id="edDesc" rows="3" placeholder="Özet"></textarea>
+    <div id="edMovieLinks" style="display:none;flex-direction:column;gap:12px">
+      <span class="cat-label">Oynatıcı linkleri:</span>
+      <input type="text" id="edDubUrl" placeholder="Türkçe Dublaj IMDb ID veya Link">
+      <input type="text" id="edSubUrl" placeholder="Altyazı: IMDb ID (tt...) veya Link (boş bırakılabilir)">
+      <textarea id="edBackups" rows="2" placeholder="Yedek linkler (isteğe bağlı, her satıra bir tane)"></textarea>
+    </div>
+    <div id="edEpisodeBox" style="display:none;flex-direction:column;gap:12px;border-top:1px solid var(--border);padding-top:12px">
+      <span class="cat-label">Düzenlenecek bölüm:</span>
+      <select id="edEpSelect" onchange="fillEpisodeFields()"></select>
+      <div id="edEpFields" style="display:none;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><label class="cat-label">Sezon No:</label><input type="number" id="edEpSeason" min="1"></div>
+          <div style="flex:1"><label class="cat-label">Bölüm No:</label><input type="number" id="edEpNum" min="1"></div>
+        </div>
+        <input type="text" id="edEpTitle" placeholder="Bölüm Adı">
+        <input type="text" id="edEpDub" placeholder="Dublaj IMDb ID veya Link">
+        <input type="text" id="edEpSub" placeholder="Altyazı: IMDb ID (tt...) veya Link (boş bırakılabilir)">
+        <textarea id="edEpBackups" rows="2" placeholder="Yedek linkler (isteğe bağlı, her satıra bir tane)"></textarea>
+        <button type="button" onclick="deleteEpisode()" style="background:#ff4757">🗑️ Sadece bu bölümü sil</button>
+      </div>
+    </div>
+    <button type="submit">Değişiklikleri Kaydet</button>
+  </form>
+</div></div>
+
+<div class="modal" id="adminModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3>👑 Yönetici Girişi</h3>
+  <form class="admin-form" onsubmit="adminLogin(event)">
+    <input type="email" id="adminEmail" placeholder="Yönetici e-postası" autocomplete="username">
+    <input type="password" id="adminPass" placeholder="Şifre" required autocomplete="current-password">
+    <button type="submit">Giriş Yap</button>
+  </form>
+</div></div>
+
+<div class="modal" id="pendingModal"><div class="modal-content" style="max-width:600px">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3>⏳ Yorumlar ve Hata Bildirimleri</h3>
+  <h4 style="margin-top:15px;color:var(--accent)">💬 Bekleyen Yorumlar</h4>
+  <div id="pendingCommentsList" style="margin-top:10px;display:flex;flex-direction:column;gap:10px"></div>
+  <h4 style="margin-top:20px;color:#e67e22">⚠️ Bildirilen Sorunlar</h4>
+  <div id="reportsList" style="margin-top:10px;display:flex;flex-direction:column;gap:10px"></div>
+</div></div>
+
+<script>
+/* ====== AYARLAR: tırnak içindeki değerleri kendi bilgilerinle değiştir ====== */
+window.CINEFLIX_CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyBTflucvWm_oo6H4cXAGZu4P1-ke74kSaU",
+    authDomain: "clinefix.firebaseapp.com",
+    projectId: "clinefix",
+    storageBucket: "clinefix.firebasestorage.app",
+    messagingSenderId: "110382528151",
+    appId: "1:110382528151:web:2650e68d1f469e736c1bd2"
+  },
+  tmdbKey: "b3fe27b55bdcab2c4a1df4001e02c2b4",        // isteğe bağlı: IMDb ile otomatik doldurma için TMDB anahtarı
+  adminPassword: "",  // Firebase açıkken kullanılmaz, boş bırak
+  contactEmail: "2ieuduwhjemm@gmail.com "    // isteğe bağlı: sitenin altında görünür
+};
+/* ====== AYARLARIN SONU ====== */
+</script>
+<script>
+const CFG = window.CINEFLIX_CONFIG || {};
+window.FIREBASE_CONFIG = CFG.firebase;
+
+const CATEGORIES = ['Aksiyon','Bilim Kurgu','Korku','Komedi','Dram','Macera','Animasyon','Anime','Fantastik','Gerilim','Romantik','Polisiye','Gizem','Suç','Belgesel','Savaş','Tarih','Aile','Müzikal','Biyografi','Western','Spor'];
+const STORAGE_KEY='cineflix_library_v18', USERS_KEY='cineflix_users_v18', REPORTS_KEY='cineflix_reports_v18';
+const DEFAULT_POSTER='https://via.placeholder.com/190x270?text=Afis+Yok';
+const DEFAULT_AVATAR='https://ui-avatars.com/api/?background=e50914&color=fff&name=';
+const ADMIN_PASSWORD=CFG.adminPassword||"";
+const SHIELD_TAPS=2;
+
+let library=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+let users=JSON.parse(localStorage.getItem(USERS_KEY)||'[]');
+let reports=JSON.parse(localStorage.getItem(REPORTS_KEY)||'[]');
+const COMMENTS_KEY='cineflix_comments_v19';
+let comments=JSON.parse(localStorage.getItem(COMMENTS_KEY)||'[]');
+let unsubC=null,unsubR=null;
+let currentUser=JSON.parse(localStorage.getItem('cineflix_current_user')||'null');
+let currentTab='movie',currentItem=null,currentEpisode=null,currentServerType='dub',isAdmin=false,currentPage=1,isRegisterMode=false;
+let cloud=null;
+const itemsPerPage=10;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const genresOf=i=>(i.genres&&i.genres.length)?i.genres:(i.genre?[i.genre]:[]);
+const clean=o=>JSON.parse(JSON.stringify(o));
+
+/* ---------- BULUT (Firestore + Auth) ---------- */
+function setStatus(t){const e=$('cloudStatus');if(e)e.textContent=t;}
+window.onCloudFail=function(msg){setStatus('💾 Yerel mod ('+msg+')');};
+let adminCheckError='';
+async function checkAdminDoc(user){
+  adminCheckError='';
+  try{const d=await cloud.getDoc(cloud.doc(cloud.db,'admins',user.uid));if(!d.exists())adminCheckError='belge bulunamadı (UID: '+user.uid+')';return d.exists();}
+  catch(e){adminCheckError=e.code||e.message;console.error(e);return false;}
+}
+function setAdmin(flag){
+  isAdmin=flag;
+  if(flag&&!currentUser)currentUser={username:'Yönetici',role:'admin',avatar:DEFAULT_AVATAR+'Y',virtual:true};
+  if(!flag&&currentUser&&currentUser.virtual)currentUser=null;
+  document.querySelectorAll('.btn-admin').forEach(b=>b.style.display=flag?'inline-block':'none');
+  updateAuthUI();startListeners();renderContent();
+  if(currentItem&&watchView.style.display==='block')openWatch(currentItem);
+}
+function startListeners(){
+  if(!cloud)return;
+  if(unsubC)unsubC();if(unsubR){unsubR();unsubR=null;}
+  const cc=cloud.collection(cloud.db,'comments');
+  const q=isAdmin?cc:cloud.query(cc,cloud.where('status','==','approved'));
+  unsubC=cloud.onSnapshot(q,snap=>{
+    comments=snap.docs.map(d=>d.data());
+    if(currentItem&&watchView.style.display==='block')renderComments();
+    if($('pendingModal').style.display==='flex')openPendingModal();
+  },()=>{});
+  if(isAdmin)unsubR=cloud.onSnapshot(cloud.collection(cloud.db,'reports'),snap=>{
+    reports=snap.docs.map(d=>d.data()).sort((a,b)=>a.id-b.id);
+    if($('pendingModal').style.display==='flex')openPendingModal();
+  },()=>{});
+}
+window.onCloudReady=function(fb){
+  cloud=fb;setStatus('☁️ Bulut bağlanıyor...');
+  fb.onSnapshot(fb.collection(fb.db,'library'),snap=>{
+    library=snap.docs.map(d=>d.data()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(library));
+    if(currentItem){const n=library.find(i=>i.id===currentItem.id);if(n)currentItem=n;}
+    renderContent();setStatus('☁️ Bulut bağlı');
+  },err=>setStatus('⚠️ Bulut hatası: '+err.code));
+  fb.onAuth(fb.auth,async user=>{
+    if(user&&await checkAdminDoc(user))setAdmin(true);
+    else{if(isAdmin||!unsubC)setAdmin(false);}
+  });
+};
+function persist(item){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(library));
+  if(cloud&&item)cloud.setDoc(cloud.doc(cloud.db,'library',item.id),clean(item)).catch(e=>alert('Buluta kaydedilemedi: '+e.message));
+}
+function persistReport(r){
+  if(!cloud){localStorage.setItem(REPORTS_KEY,JSON.stringify(reports));return Promise.resolve();}
+  return r?cloud.setDoc(cloud.doc(cloud.db,'reports',String(r.id)),clean(r)):Promise.resolve();
+}
+function saveComment(c){
+  const i=comments.findIndex(x=>x.id===c.id);
+  if(i===-1)comments.push(c);else comments[i]=c;
+  if(!cloud)localStorage.setItem(COMMENTS_KEY,JSON.stringify(comments));
+  else cloud.setDoc(cloud.doc(cloud.db,'comments',c.id),clean(c)).catch(e=>alert('Kaydedilemedi: '+e.message));
+}
+
+/* ---------- KATEGORİLER ---------- */
+function renderCatBoxes(){
+  ['movieCats','seriesCats','editCats'].forEach(id=>{
+    $(id).innerHTML=CATEGORIES.map(c=>`<label class="cat-chip"><input type="checkbox" value="${esc(c)}"><span>${esc(c)}</span></label>`).join('');
+  });
+  $('catFilter').innerHTML='<option value="">Tüm Kategoriler</option>'+CATEGORIES.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+const getChecked=id=>[...document.querySelectorAll('#'+id+' input:checked')].map(i=>i.value);
+
+/* ---------- YÖNETİCİ ---------- */
+let logoClickCount=0;
+function checkAdminSecret(){
+  logoClickCount++;setTimeout(()=>{logoClickCount=0},1000);
+  if(logoClickCount>=3){
+    if(isAdmin){alert("Zaten yönetici olarak giriş yaptın.");return;}
+    $('adminEmail').style.display=cloud?'block':'none';
+    $('adminEmail').required=!!cloud;
+    $('adminModal').style.display='flex';
+  }
+}
+async function adminLogin(e){
+  e.preventDefault();
+  const pw=$('adminPass').value;
+  if(cloud){
+    try{
+      const cred=await cloud.signIn(cloud.auth,$('adminEmail').value.trim(),pw);
+      if(await checkAdminDoc(cred.user)){$('adminPass').value='';closeModals();alert("👑 Yönetici Modu Aktif!");}
+      else{await cloud.signOut(cloud.auth);alert("Yönetici doğrulanamadı: "+adminCheckError);}
+    }catch(err){alert("Giriş başarısız: "+(err.code||err.message));}
+  }else if(ADMIN_PASSWORD&&pw===ADMIN_PASSWORD){
+    $('adminPass').value='';closeModals();setAdmin(true);alert("👑 Yönetici Modu Aktif!");
+  }else alert("Hatalı şifre!");
+}
+
+if(library.length===0){
+  library.push({id:'mov_1',type:'movie',title:'Interstellar',poster:'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=500',genres:['Bilim Kurgu','Dram','Macera'],imdb:'8.7',
+    dubUrl:'https://player.autoembed.cc/embed/movie/tt0816692',subUrl:'https://vidsrc.to/embed/movie/tt0816692',desc:'Astronotların solucan deliği yolculuğu.',comments:[],createdAt:Date.now()});
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(library));
+}
+
+library.forEach(it=>{if(it.comments&&it.comments.length&&!cloud){it.comments.forEach(c=>comments.push(Object.assign({},c,{id:String(c.id),itemId:it.id,itemTitle:it.title})));}delete it.comments;});
+localStorage.setItem(COMMENTS_KEY,JSON.stringify(comments));
+
+const homeView=$('homeView'),watchView=$('watchView'),contentGrid=$('contentGrid');
+
+/* ---------- ÜYELİK (yerel) ---------- */
+function updateAuthUI(){
+  const c=$('authContainer');
+  c.innerHTML=currentUser
+    ?`<button class="btn-user" onclick="openProfileModal()" style="display:flex;align-items:center;gap:6px"><img src="${esc(currentUser.avatar||DEFAULT_AVATAR+currentUser.username)}" class="user-avatar"><span>${esc(currentUser.username)} ${currentUser.role==='admin'?'👑':''}</span></button>`
+    :`<button class="btn-user" onclick="openAuthModal()">🔑 Giriş Yap / Üye Ol</button>`;
+}
+function toggleAuthMode(){
+  isRegisterMode=!isRegisterMode;
+  $('authTitle').textContent=isRegisterMode?'Yeni Üye Kaydı':'Kullanıcı Girişi';
+  $('authSubmitBtn').textContent=isRegisterMode?'Kayıt Ol':'Giriş Yap';
+  $('avatarInputBox').style.display=isRegisterMode?'block':'none';
+  $('authToggleText').textContent=isRegisterMode?'Zaten hesabınız var mı?':'Hesabınız yok mu?';
+  $('authToggleLink').textContent=isRegisterMode?'Giriş Yapın':'Üye Olun';
+}
+function handleAuth(e){
+  e.preventDefault();
+  const u=$('authUsername').value.trim(),p=$('authPassword').value.trim(),av=$('authAvatar').value.trim();
+  if(isRegisterMode){
+    if(users.find(x=>x.username===u)){alert("Bu kullanıcı adı zaten alınmış!");return;}
+    const nu={username:u,password:p,avatar:av||(DEFAULT_AVATAR+u),role:'user',planToWatch:[],completed:[]};
+    users.push(nu);localStorage.setItem(USERS_KEY,JSON.stringify(users));
+    currentUser=nu;localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));
+    alert("Kayıt başarılı! Hoş geldiniz.");
+  }else{
+    const f=users.find(x=>x.username===u&&x.password===p);
+    if(f){currentUser=f;localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));alert("Giriş başarılı!");}
+    else{alert("Kullanıcı adı veya şifre hatalı!");return;}
+  }
+  updateAuthUI();closeModals();if(currentItem)openWatch(currentItem);
+}
+function logout(){
+  if(cloud&&isAdmin)cloud.signOut(cloud.auth);
+  currentUser=null;isAdmin=false;localStorage.removeItem('cineflix_current_user');
+  document.querySelectorAll('.btn-admin').forEach(b=>b.style.display='none');
+  updateAuthUI();closeModals();if(currentItem)openWatch(currentItem);
+}
+function openProfileModal(){
+  if(!currentUser)return;
+  $('profImg').src=currentUser.avatar||(DEFAULT_AVATAR+currentUser.username);
+  $('profUsername').textContent=currentUser.username;
+  $('profRole').textContent=currentUser.role==='admin'?'👑 Yönetici':'Üye';
+  const list=ids=>(ids||[]).map(id=>{const i=library.find(x=>x.id===id);return i?`<div class="user-list-item"><span>${esc(i.title)}</span></div>`:''}).join('')||'<p style="font-size:.8rem;color:var(--text-sub)">Henüz eklenmedi.</p>';
+  $('profPlanList').innerHTML=list(currentUser.planToWatch);
+  $('profCompletedList').innerHTML=list(currentUser.completed);
+  $('profileModal').style.display='flex';
+}
+function updateAvatar(){
+  const url=$('newAvatarUrl').value.trim();if(!url||!currentUser)return;
+  currentUser.avatar=url;localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));
+  const i=users.findIndex(x=>x.username===currentUser.username);
+  if(i!==-1){users[i].avatar=url;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+  updateAuthUI();openProfileModal();
+}
+function toggleWatchList(type){
+  if(!currentUser){alert("Bu özelliği kullanmak için giriş yapmalısınız!");openAuthModal();return;}
+  currentUser.planToWatch=currentUser.planToWatch||[];currentUser.completed=currentUser.completed||[];
+  const list=type==='plan'?currentUser.planToWatch:currentUser.completed;
+  const idx=list.indexOf(currentItem.id);
+  if(idx===-1){list.push(currentItem.id);alert(type==='plan'?"İzleme listenize eklendi!":"Bitirdikleriniz arasına eklendi!");}
+  else{list.splice(idx,1);alert("Listeden çıkarıldı.");}
+  localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));
+  const i=users.findIndex(x=>x.username===currentUser.username);
+  if(i!==-1){users[i]=currentUser;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+}
+
+/* ---------- LİSTELEME ---------- */
+function switchTab(tab){
+  currentTab=tab;currentPage=1;
+  $('tabMovies').classList.toggle('active',tab==='movie');
+  $('tabSeries').classList.toggle('active',tab==='series');
+  renderContent();
+}
+function searchAndRender(){currentPage=1;renderContent();}
+function makeCard(item){
+  const card=document.createElement('div');card.className='movie-card';
+  card.innerHTML=`${item.featured?'<div class="feat-badge">👑</div>':''}<div class="lang-badge">🇹🇷/🇬🇧</div>
+    <img src="${esc(item.poster||DEFAULT_POSTER)}" class="movie-poster" alt="Afiş" onerror="this.src='${DEFAULT_POSTER}'">
+    <div class="movie-details"><div class="movie-title">${esc(item.title)}</div>
+    <div class="movie-meta"><span class="g">${esc(genresOf(item).join(', '))}</span><span style="color:#f5c518">⭐ ${esc(item.imdb)}</span></div></div>`;
+  card.addEventListener('click',()=>openWatch(item));
+  return card;
+}
+function renderFeatured(){
+  const sec=$('featuredSection'),row=$('featuredRow');
+  const filtering=$('searchInput').value.trim()||$('catFilter').value;
+  const list=library.filter(i=>i.featured);
+  row.innerHTML='';
+  if(!list.length||filtering){sec.style.display='none';return;}
+  list.forEach(i=>row.appendChild(makeCard(i)));
+  sec.style.display='block';
+}
+function updateFeatureBtn(){
+  const b=document.querySelector('.feature-item-btn');
+  if(b&&currentItem)b.textContent=currentItem.featured?'⭐ Yöneticinin Seçiminden Çıkar':'⭐ Yöneticinin Seçimi Yap';
+}
+function toggleFeatured(){
+  if(!isAdmin||!currentItem)return;
+  currentItem.featured=!currentItem.featured;
+  persist(currentItem);updateFeatureBtn();
+  alert(currentItem.featured?"Yöneticinin Seçimi'ne eklendi!":"Yöneticinin Seçimi'nden çıkarıldı.");
+}
+function renderContent(){
+  contentGrid.innerHTML='';
+  renderFeatured();
+  const q=$('searchInput').value.toLowerCase(),cat=$('catFilter').value;
+  const filtered=library.filter(i=>i.type===currentTab&&i.title.toLowerCase().includes(q)&&(!cat||genresOf(i).includes(cat)));
+  const sort=$('sortSelect').value;
+  if(sort==='rating')filtered.sort((a,b)=>(parseFloat(b.imdb)||0)-(parseFloat(a.imdb)||0));
+  else if(sort==='az')filtered.sort((a,b)=>a.title.localeCompare(b.title,'tr'));
+  else filtered.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!filtered.length){
+    contentGrid.innerHTML='<p style="color:var(--text-sub)">İçerik bulunamadı.</p>';
+    $('paginationContainer').innerHTML='';return;
+  }
+  const totalPages=Math.ceil(filtered.length/itemsPerPage);
+  if(currentPage>totalPages)currentPage=totalPages;
+  filtered.slice((currentPage-1)*itemsPerPage,currentPage*itemsPerPage).forEach(item=>contentGrid.appendChild(makeCard(item)));
+  const pc=$('paginationContainer');pc.innerHTML='';
+  if(totalPages>1)for(let i=1;i<=totalPages;i++){
+    const b=document.createElement('button');b.className='page-btn'+(i===currentPage?' active':'');b.textContent=i;
+    b.onclick=()=>{currentPage=i;renderContent();window.scrollTo(0,0)};pc.appendChild(b);
+  }
+}
+
+/* ---------- İZLEME ---------- */
+function openWatch(item){
+  currentItem=item;homeView.style.display='none';watchView.style.display='block';window.scrollTo(0,0);
+  $('watchTitle').textContent=item.title;
+  $('watchGenre').textContent=genresOf(item).join(' • ');
+  $('watchLang').textContent=`${item.type==='movie'?'🎬 Film':'📺 Dizi'} | 🇹🇷 Dublaj & 🇬🇧 Altyazı`;
+  $('watchImdb').textContent=`⭐ ${item.imdb}`;
+  $('watchDesc').textContent=item.desc;
+  document.querySelector('.delete-item-btn').style.display=isAdmin?'inline-block':'none';
+  document.querySelector('.edit-item-btn').style.display=isAdmin?'inline-block':'none';
+  document.querySelector('.feature-item-btn').style.display=isAdmin?'inline-block':'none';
+  updateFeatureBtn();
+  $('serverSwitcher').style.display='flex';
+  if(item.type==='movie'){
+    $('seasonsContainer').style.display='none';
+    currentServerType='dub';updateServerButtons();playVideo(item.dubUrl||item.subUrl);
+  }else{
+    $('seasonsContainer').style.display='block';renderSeasons(item);
+  }
+  renderComments();
+}
+function renderSeasons(series){
+  const grid=$('episodesGrid');grid.innerHTML='';
+  const seasons=[...(series.seasons||[])].sort((a,b)=>a.seasonNumber-b.seasonNumber);
+  if(!seasons.length){$('currentSeasonTitle').textContent='Henüz bölüm eklenmedi';$('playerBox').innerHTML='';currentEpisode=null;updateServerButtons();return;}
+  seasons.forEach(s=>s.episodes.sort((a,b)=>a.epNum-b.epNum));
+  const first=seasons[0];
+  $('currentSeasonTitle').textContent=`Sezon ${first.seasonNumber} Bölümleri`;
+  if(first.episodes.length){
+    currentEpisode=first.episodes[0];currentServerType='dub';updateServerButtons();
+    playVideo(currentEpisode.dubUrl||currentEpisode.subUrl);
+  }
+  seasons.forEach(season=>season.episodes.forEach(ep=>{
+    const btn=document.createElement('button');btn.className='ep-btn';
+    btn.textContent=`S${season.seasonNumber} - B${ep.epNum}: ${ep.title}`;
+    btn.onclick=()=>{
+      document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+      $('currentSeasonTitle').textContent=`Sezon ${season.seasonNumber} Bölümleri`;
+      currentEpisode=ep;currentServerType='dub';updateServerButtons();playVideo(ep.dubUrl||ep.subUrl);
+    };
+    grid.appendChild(btn);
+  }));
+  if(grid.firstChild)grid.firstChild.classList.add('active');
+}
+function curSource(){return currentItem?(currentItem.type==='movie'?currentItem:currentEpisode):null;}
+function switchServer(type){
+  const src=curSource();if(!src)return;
+  currentServerType=type;
+  let u='';
+  if(type==='dub')u=src.dubUrl;
+  else if(type==='sub')u=src.subUrl;
+  else u=(src.backups||[])[parseInt(type.slice(1))];
+  updateServerButtons();
+  if(u)playVideo(u);
+}
+function updateServerButtons(){
+  $('dubBtn').classList.toggle('active',currentServerType==='dub');
+  $('subBtn').classList.toggle('active',currentServerType==='sub');
+  const src=curSource();
+  $('dubBtn').style.display=(src&&!src.dubUrl)?'none':'';
+  $('subBtn').style.display=(src&&src.subUrl)?'':'none';
+  $('backupBtns').innerHTML=((src&&src.backups)||[]).map((u,i)=>`<button class="server-btn${currentServerType==='b'+i?' active':''}" onclick="switchServer('b${i}')">🔁 Yedek ${i+1}</button>`).join('');
+}
+function playVideo(url){
+  const box=$('playerBox');box.classList.remove('pseudo-full');
+  box.innerHTML=`<iframe src="${esc(url)}" ${CFG.sandbox?'sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"':''} referrerpolicy="no-referrer" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+    <div class="click-shield" id="clickShield">▶ Başlatmak için dokun</div>
+    <button class="fs-btn" onclick="toggleFullscreen()">⛶ Tam Ekran</button>`;
+  let taps=0;const sh=$('clickShield');
+  sh.addEventListener('click',()=>{taps++;if(taps>=SHIELD_TAPS)sh.remove();else sh.textContent=`Bir kez daha dokun (${SHIELD_TAPS-taps})`;});
+}
+function toggleFullscreen(){
+  const box=$('playerBox');
+  if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return;}
+  if(box.classList.contains('pseudo-full')){box.classList.remove('pseudo-full');return;}
+  const req=box.requestFullscreen||box.webkitRequestFullscreen;
+  if(req)Promise.resolve(req.call(box)).catch(()=>box.classList.add('pseudo-full'));else box.classList.add('pseudo-full');
+}
+function goHome(){watchView.style.display='none';homeView.style.display='block';$('playerBox').innerHTML='';renderContent();}
+
+/* ---------- BİLDİRİM & YORUM ---------- */
+function openReportModal(){$('reportModal').style.display='flex';}
+function submitReport(e){
+  e.preventDefault();
+  const r={id:Date.now(),itemTitle:(currentItem?currentItem.title:'Bilinmiyor').slice(0,200),type:$('reportType').value,details:$('reportDetails').value.trim().slice(0,500),
+    user:(currentUser?currentUser.username:'Ziyaretçi').slice(0,40),date:new Date().toLocaleDateString('tr-TR'),itemId:currentItem?currentItem.id:'',epInfo:currentEpLabel().slice(0,120)};
+  reports.push(r);
+  persistReport(r).then(()=>{$('reportDetails').value='';closeModals();alert("Hata bildiriminiz yöneticiye iletildi. Teşekkür ederiz!");})
+    .catch(e=>{reports=reports.filter(x=>x.id!==r.id);alert("Bildirim gönderilemedi: "+(e.code||e.message));});
+}
+function submitComment(e){
+  e.preventDefault();
+  if(!currentUser){alert("Yorum yapabilmek için önce üye girişi yapmalısınız!");openAuthModal();return;}
+  const text=$('commentText').value.trim().slice(0,500);if(!text)return;
+  saveComment({id:Date.now()+Math.random().toString(36).slice(2,6),itemId:currentItem.id,itemTitle:currentItem.title.slice(0,200),
+    author:currentUser.username.slice(0,40),avatar:(currentUser.avatar||(DEFAULT_AVATAR+currentUser.username)).slice(0,300),
+    text,status:'pending',reply:'',createdAt:Date.now()});
+  $('commentText').value='';
+  alert("Yorumunuz gönderildi! Yönetici onayından sonra yayınlanacaktır.");
+}
+function renderComments(){
+  const list=$('commentsList');list.innerHTML='';
+  const ap=comments.filter(c=>c.itemId===currentItem.id&&c.status==='approved');
+  if(!ap.length){list.innerHTML='<p style="color:var(--text-sub);font-size:.9rem">Henüz onaylanmış yorum yok.</p>';return;}
+  ap.forEach(c=>{
+    const d=document.createElement('div');d.className='comment-card';
+    d.innerHTML=`<div class="comment-header"><img src="${esc(c.avatar||DEFAULT_AVATAR+c.author)}" class="user-avatar"><span style="font-weight:bold;color:var(--accent)">${esc(c.author)}</span></div>
+      <div style="font-size:.95rem;margin-top:4px">${esc(c.text)}</div>
+      ${c.reply?`<div style="background:#181818;padding:8px;border-left:3px solid var(--accent);margin-top:8px;border-radius:4px"><span style="font-weight:bold;color:#f5c518">👑 Yönetici Yanıtı:</span> <span style="font-size:.9rem">${esc(c.reply)}</span></div>`:''}
+      ${isAdmin&&!c.reply?`<div style="margin-top:8px"><input type="text" id="reply_${esc(c.id)}" placeholder="Yönetici yanıtı..." style="padding:6px;width:75%;background:#222;border:1px solid #444;color:#fff;border-radius:4px"><button onclick="sendAdminReply('${esc(c.id)}')" style="padding:6px 10px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-left:5px">Yanıtla</button></div>`:''}`;
+    list.appendChild(d);
+  });
+}
+function sendAdminReply(id){
+  const t=$('reply_'+id).value.trim().slice(0,500);if(!t)return;
+  const c=comments.find(x=>x.id===id);
+  if(c){c.reply=t;saveComment(c);renderComments();}
+}
+function openPendingModal(){
+  $('pendingModal').style.display='flex';
+  const pc=$('pendingCommentsList'),rc=$('reportsList');pc.innerHTML='';rc.innerHTML='';
+  const pend=comments.filter(c=>c.status==='pending');
+  pend.forEach(c=>{
+    const d=document.createElement('div');
+    d.style.cssText='background:#111;padding:10px;border-radius:6px;border:1px solid #333';
+    d.innerHTML=`<div style="font-size:.8rem;color:var(--accent)">İçerik: ${esc(c.itemTitle)}</div>
+      <div style="font-weight:bold;margin:4px 0">${esc(c.author)}: ${esc(c.text)}</div>
+      <button onclick="approveComment('${esc(c.id)}')" style="background:#2ecc71;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:bold">Onayla</button>
+      <button onclick="deleteComment('${esc(c.id)}')" style="background:#ff4757;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:bold;margin-left:5px">Reddet/Sil</button>`;
+    pc.appendChild(d);
+  });
+  if(!pend.length)pc.innerHTML='<p style="color:var(--text-sub)">Onay bekleyen yorum yok.</p>';
+  if(!reports.length)rc.innerHTML='<p style="color:var(--text-sub)">Bildirilen sorun bulunmuyor.</p>';
+  else reports.forEach(r=>{
+    const d=document.createElement('div');
+    d.style.cssText='background:#111;padding:10px;border-radius:6px;border:1px solid #333';
+    d.innerHTML=`<div style="font-size:.8rem;color:#e67e22">İçerik: ${esc(r.itemTitle)}${r.epInfo?' • '+esc(r.epInfo):''} (${esc(r.date)})</div>
+      <div style="font-weight:bold;margin:4px 0;color:#ff4757">[${esc(r.type)}]</div>
+      <div style="font-size:.9rem;margin-bottom:6px">${esc(r.details)} (Gönderen: ${esc(r.user)})</div>
+      <button onclick="editFromReport(${r.id})" style="background:#2d8cff;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:5px">✏️ İçeriği Düzenle</button>
+      <button onclick="deleteReport(${r.id})" style="background:#333;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer">Kapat/Sil</button>`;
+    rc.appendChild(d);
+  });
+}
+function deleteReport(id){
+  reports=reports.filter(r=>r.id!==id);
+  if(cloud)cloud.deleteDoc(cloud.doc(cloud.db,'reports',String(id))).catch(console.error);
+  else persistReport();
+  openPendingModal();
+}
+function approveComment(id){
+  const c=comments.find(x=>x.id===id);if(!c)return;
+  c.status='approved';saveComment(c);openPendingModal();renderCommentsIfOpen();
+}
+function deleteComment(id){
+  comments=comments.filter(x=>x.id!==id);
+  if(cloud)cloud.deleteDoc(cloud.doc(cloud.db,'comments',id)).catch(console.error);
+  else localStorage.setItem(COMMENTS_KEY,JSON.stringify(comments));
+  openPendingModal();
+}
+function renderCommentsIfOpen(){if(currentItem&&watchView.style.display==='block')renderComments();}
+
+/* ---------- İÇERİK EKLEME ---------- */
+function formatEmbedUrl(input,type='movie',season=1,ep=1,isDub=false){
+  if(!input)return '';
+  input=input.trim();
+  if(/^https?:\/\//.test(input))return input;
+  if(input.startsWith('tt')){
+    if(isDub)return type==='movie'?`https://player.autoembed.cc/embed/movie/${input}`:`https://player.autoembed.cc/embed/tv/${input}/${season}/${ep}`;
+    return type==='movie'?`https://vidsrc.to/embed/movie/${input}`:`https://vidsrc.to/embed/tv/${input}/${season}/${ep}`;
+  }
+  return input;
+}
+function saveMovie(e){
+  e.preventDefault();
+  const genres=getChecked('movieCats');
+  if(!genres.length){alert("En az bir kategori seçmelisin.");return;}
+  const m={id:'mov_'+Date.now(),type:'movie',title:$('fmTitle').value.trim(),poster:$('fmPoster').value.trim()||DEFAULT_POSTER,
+    genres,imdb:$('fmImdb').value.trim(),dubUrl:formatEmbedUrl($('fmDubUrl').value,'movie',1,1,true),
+    subUrl:formatEmbedUrl($('fmSubUrl').value,'movie',1,1,false),backups:parseBackups($('fmBackups').value,'movie',1,1),desc:$('fmDesc').value.trim(),comments:[],createdAt:Date.now()};
+  library.unshift(m);persist(m);closeModals();$('addMovieForm').reset();
+  currentTab='movie';switchTab('movie');alert("Film eklendi!");
+}
+function saveSeries(e){
+  e.preventDefault();
+  try{
+    const action=$('seriesActionType').value;
+    const sn=parseInt($('smSeason').value),en=parseInt($('smEpNumber').value);
+    let s;
+    if(action==='new'){
+      const title=$('smTitle').value.trim();
+      if(!title){alert("Dizi adını yazmalısın.");return;}
+      const genres=getChecked('seriesCats');
+      if(!genres.length){alert("En az bir kategori seçmelisin.");return;}
+      s={id:'ser_'+Date.now(),type:'series',title,poster:$('smPoster').value.trim()||DEFAULT_POSTER,genres,
+        imdb:$('smImdb').value.trim()||'-',desc:$('smDesc').value.trim(),seasons:[],comments:[],createdAt:Date.now()};
+      library.unshift(s);
+    }else{
+      s=library.find(x=>x.id===$('targetSeriesSelect').value);
+      if(!s){alert("Önce bir dizi seçmelisin.");return;}
+      s.seasons=s.seasons||[];
+    }
+    let season=s.seasons.find(x=>x.seasonNumber===sn);
+    if(!season){season={seasonNumber:sn,episodes:[]};s.seasons.push(season);}
+    season.episodes.push({epNum:en,title:$('smEpTitle').value.trim(),
+      dubUrl:formatEmbedUrl($('smDubUrl').value,'series',sn,en,true),subUrl:formatEmbedUrl($('smSubUrl').value,'series',sn,en,false),backups:parseBackups($('smBackups').value,'series',sn,en)});
+    persist(s);closeModals();$('addSeriesForm').reset();toggleSeriesInputs();switchTab('series');
+    alert(action==='new'?"Dizi eklendi!":"Bölüm kaydedildi!");
+  }catch(err){alert("Kaydedilemedi: "+err.message);}
+}
+function toggleSeriesInputs(){
+  const t=$('seriesActionType').value;
+  $('newSeriesBox').style.display=t==='new'?'flex':'none';
+  $('existingSeriesBox').style.display=t==='existing'?'block':'none';
+  $('seriesSubmitBtn').textContent=t==='new'?'Yeni Dizi Ekle':'Bölümü Kaydet';
+  if(t==='existing'){
+    const sel=$('targetSeriesSelect');sel.innerHTML='';
+    const list=library.filter(s=>s.type==='series');
+    if(!list.length)sel.innerHTML='<option value="">-- Önce Yeni Dizi Oluşturun --</option>';
+    else list.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.title;sel.appendChild(o);});
+  }
+}
+let editRefs=[];
+function openEditModal(){
+  if(!isAdmin||!currentItem)return;
+  const it=currentItem,isMovie=it.type==='movie';
+  $('editHead').textContent='✏️ Düzenle: '+it.title;
+  $('edTitle').value=it.title||'';
+  $('edPoster').value=(it.poster&&it.poster!==DEFAULT_POSTER)?it.poster:'';
+  $('edImdb').value=it.imdb||'';
+  $('edDesc').value=it.desc||'';
+  const g=genresOf(it);
+  document.querySelectorAll('#editCats input').forEach(i=>i.checked=g.includes(i.value));
+  ['edEpSeason','edEpNum','edEpTitle','edEpDub'].forEach(id=>$(id).required=false);
+  $('edMovieLinks').style.display=isMovie?'flex':'none';
+  $('edEpisodeBox').style.display=isMovie?'none':'flex';
+  $('edDubUrl').required=isMovie;
+  $('edImdbId').value='';
+  if(isMovie){$('edDubUrl').value=it.dubUrl||'';$('edSubUrl').value=it.subUrl||'';$('edBackups').value=(it.backups||[]).join('\n');}
+  else buildEpisodeSelect();
+  $('editModal').style.display='flex';
+}
+function buildEpisodeSelect(){
+  editRefs=[];
+  (currentItem.seasons||[]).slice().sort((a,b)=>a.seasonNumber-b.seasonNumber).forEach(s=>
+    s.episodes.slice().sort((a,b)=>a.epNum-b.epNum).forEach(ep=>editRefs.push({season:s,ep})));
+  const sel=$('edEpSelect'),has=editRefs.length>0;
+  $('edEpFields').style.display=has?'flex':'none';
+  if(!has){sel.innerHTML='<option>Bu dizide henüz bölüm yok</option>';return;}
+  ['edEpSeason','edEpNum','edEpTitle','edEpDub'].forEach(id=>$(id).required=true);
+  sel.innerHTML=editRefs.map((r,i)=>`<option value="${i}">S${r.season.seasonNumber} - B${r.ep.epNum}: ${esc(r.ep.title)}</option>`).join('');
+  let idx=0;
+  if(currentEpisode){
+    const f=editRefs.findIndex(r=>r.ep===currentEpisode||(r.ep.epNum===currentEpisode.epNum&&r.ep.title===currentEpisode.title&&r.ep.dubUrl===currentEpisode.dubUrl));
+    if(f>-1)idx=f;
+  }
+  sel.value=String(idx);fillEpisodeFields();
+}
+function fillEpisodeFields(){
+  const r=editRefs[parseInt($('edEpSelect').value)];if(!r)return;
+  $('edEpSeason').value=r.season.seasonNumber;$('edEpNum').value=r.ep.epNum;
+  $('edEpTitle').value=r.ep.title||'';$('edEpDub').value=r.ep.dubUrl||'';$('edEpSub').value=r.ep.subUrl||'';$('edEpBackups').value=(r.ep.backups||[]).join('\n');
+}
+function saveEdit(e){
+  e.preventDefault();
+  if(!isAdmin||!currentItem)return;
+  const it=currentItem,genres=getChecked('editCats');
+  if(!genres.length){alert("En az bir kategori seçmelisin.");return;}
+  it.title=$('edTitle').value.trim();
+  it.poster=$('edPoster').value.trim()||DEFAULT_POSTER;
+  it.genres=genres;delete it.genre;
+  it.imdb=$('edImdb').value.trim()||'-';
+  it.desc=$('edDesc').value.trim();
+  let pick=null;
+  if(it.type==='movie'){
+    it.dubUrl=formatEmbedUrl($('edDubUrl').value,'movie',1,1,true);
+    it.subUrl=formatEmbedUrl($('edSubUrl').value,'movie',1,1,false);
+    it.backups=parseBackups($('edBackups').value,'movie',1,1);
+  }else if(editRefs.length){
+    const r=editRefs[parseInt($('edEpSelect').value)];
+    const sn=parseInt($('edEpSeason').value),en=parseInt($('edEpNum').value);
+    r.ep.epNum=en;r.ep.title=$('edEpTitle').value.trim();
+    r.ep.dubUrl=formatEmbedUrl($('edEpDub').value,'series',sn,en,true);
+    r.ep.subUrl=formatEmbedUrl($('edEpSub').value,'series',sn,en,false);
+    r.ep.backups=parseBackups($('edEpBackups').value,'series',sn,en);
+    if(r.season.seasonNumber!==sn){
+      r.season.episodes=r.season.episodes.filter(x=>x!==r.ep);
+      let ns=it.seasons.find(x=>x.seasonNumber===sn);
+      if(!ns){ns={seasonNumber:sn,episodes:[]};it.seasons.push(ns);}
+      ns.episodes.push(r.ep);
+      it.seasons=it.seasons.filter(x=>x.episodes.length);
+    }
+    pick=`S${sn} - B${en}: ${r.ep.title}`;
+  }
+  persist(it);closeModals();openWatch(it);
+  if(pick){const b=[...document.querySelectorAll('.ep-btn')].find(x=>x.textContent===pick);if(b)b.click();}
+  alert("Değişiklikler kaydedildi!");
+}
+function deleteEpisode(){
+  const r=editRefs[parseInt($('edEpSelect').value)];if(!r)return;
+  if(!confirm(`S${r.season.seasonNumber} - B${r.ep.epNum} bölümünü silmek istediğine emin misin?`))return;
+  const it=currentItem;
+  r.season.episodes=r.season.episodes.filter(x=>x!==r.ep);
+  it.seasons=it.seasons.filter(x=>x.episodes.length);
+  currentEpisode=null;persist(it);closeModals();openWatch(it);
+}
+function parseBackups(text,type,sn,en){
+  return String(text||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>formatEmbedUrl(x,type,sn,en,false)).filter(Boolean);
+}
+function currentEpLabel(){
+  if(!currentItem||currentItem.type!=='series'||!currentEpisode)return '';
+  for(const s of currentItem.seasons||[]){
+    const e=s.episodes.find(x=>x===currentEpisode||(x.epNum===currentEpisode.epNum&&x.title===currentEpisode.title&&x.dubUrl===currentEpisode.dubUrl));
+    if(e)return `S${s.seasonNumber} - B${e.epNum}: ${e.title}`;
+  }
+  return '';
+}
+function editFromReport(rid){
+  const r=reports.find(x=>x.id===rid);if(!r)return;
+  const it=library.find(i=>i.id===r.itemId)||library.find(i=>i.title===r.itemTitle);
+  if(!it){alert("İçerik bulunamadı, silinmiş olabilir.");return;}
+  closeModals();openWatch(it);
+  if(r.epInfo){const b=[...document.querySelectorAll('.ep-btn')].find(x=>x.textContent===r.epInfo);if(b)b.click();}
+  openEditModal();
+}
+const CATBOX={fm:'movieCats',sm:'seriesCats',ed:'editCats'};
+const TMDB_GENRES={28:['Aksiyon'],12:['Macera'],16:['Animasyon'],35:['Komedi'],80:['Suç','Polisiye'],99:['Belgesel'],18:['Dram'],10751:['Aile'],14:['Fantastik'],36:['Tarih'],27:['Korku'],10402:['Müzikal'],9648:['Gizem'],10749:['Romantik'],878:['Bilim Kurgu'],53:['Gerilim'],10752:['Savaş'],37:['Western'],10759:['Aksiyon','Macera'],10765:['Bilim Kurgu','Fantastik'],10768:['Savaş'],10762:['Aile'],10766:['Dram']};
+async function autoFill(p){
+  const key=CFG.tmdbKey;
+  if(!key){alert("TMDB anahtarı yok. firebase-config.js dosyasına tmdbKey ekle (README'ye bak).");return;}
+  const id=$(p+'ImdbId').value.trim();
+  if(!/^tt\d+$/.test(id)){alert("IMDb ID 'tt' ile başlamalı ve rakamlarla devam etmeli. Örn: tt0816692");return;}
+  const btn=$(p+'FillBtn');btn.disabled=true;btn.textContent='Aranıyor...';
+  try{
+    const r=await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${encodeURIComponent(key)}&external_source=imdb_id&language=tr-TR`);
+    if(!r.ok)throw new Error('TMDB hatası '+r.status);
+    const d=await r.json();
+    const isTv=p==='sm'||(p==='ed'&&currentItem&&currentItem.type==='series');
+    const m=((isTv?d.tv_results:d.movie_results)||[])[0]||(d.movie_results||[])[0]||(d.tv_results||[])[0];
+    if(!m)throw new Error('Bu kodla içerik bulunamadı');
+    $(p+'Title').value=m.title||m.name||'';
+    if(m.poster_path)$(p+'Poster').value='https://image.tmdb.org/t/p/w500'+m.poster_path;
+    $(p+'Imdb').value=m.vote_average?m.vote_average.toFixed(1):'';
+    $(p+'Desc').value=m.overview||'';
+    const cats=new Set();(m.genre_ids||[]).forEach(g=>(TMDB_GENRES[g]||[]).forEach(c=>cats.add(c)));
+    if(cats.size)document.querySelectorAll('#'+CATBOX[p]+' input').forEach(i=>i.checked=cats.has(i.value));
+    alert("Bilgiler dolduruldu. Kontrol edip kaydedebilirsin.");
+  }catch(e){alert("Otomatik doldurma başarısız: "+e.message);}
+  finally{btn.disabled=false;btn.textContent='🔎 Otomatik doldur';}
+}
+function deleteCurrentItem(){
+  if(!confirm("Bu içeriği silmek istediğinize emin misiniz?"))return;
+  const id=currentItem.id;
+  library=library.filter(i=>i.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(library));
+  if(cloud)cloud.deleteDoc(cloud.doc(cloud.db,'library',id)).catch(e=>alert('Silinemedi: '+e.message));
+  currentItem=null;goHome();
+}
+
+function openAuthModal(){$('authModal').style.display='flex';}
+function openMovieModal(){$('movieModal').style.display='flex';}
+function openSeriesModal(){$('seriesModal').style.display='flex';toggleSeriesInputs();}
+function closeModals(){['movieModal','seriesModal','editModal','adminModal','pendingModal','authModal','profileModal','reportModal'].forEach(id=>$(id).style.display='none');}
+
+renderCatBoxes();updateAuthUI();renderContent();
+if(CFG.contactEmail){const m=$('contactMail');m.textContent='📧 '+CFG.contactEmail;m.style.display='block';}
+</script>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getFirestore,collection,doc,setDoc,getDoc,deleteDoc,onSnapshot,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+try{
+  if(!window.CINEFLIX_CONFIG)throw new Error('firebase-config.js yüklenemedi veya içinde yazım hatası var');
+  const cfg=window.FIREBASE_CONFIG;
+  if(!cfg)throw new Error("config içinde 'firebase: {...}' bloğu yok");
+  const bad=v=>!v||/^BURAYA|PROJE_ID/.test(v);
+  if(bad(cfg.apiKey))throw new Error('apiKey boş veya örnek değer');
+  if(bad(cfg.projectId))throw new Error('projectId boş veya örnek değer');
+  const app=initializeApp(cfg);
+  window.onCloudReady({db:getFirestore(app),auth:getAuth(app),collection,doc,setDoc,getDoc,deleteDoc,onSnapshot,query,where,
+    signIn:signInWithEmailAndPassword,signOut,onAuth:onAuthStateChanged});
+}catch(e){window.onCloudFail(e.message);}
+</script>
+</body>
+</html>
