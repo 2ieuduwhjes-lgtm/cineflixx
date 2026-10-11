@@ -77,6 +77,10 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
 .featured-row{display:flex;gap:18px;overflow-x:auto;padding:4px 2px 14px;margin-bottom:10px}
 .featured-row .movie-card{flex:0 0 180px}
 .feat-badge{position:absolute;top:10px;left:10px;z-index:2;background:rgba(0,0,0,.75);padding:3px 6px;border-radius:4px;border:1px solid #f5c518;font-size:.85rem}
+.order-badge{position:absolute;top:10px;left:10px;z-index:2;background:#e50914;color:#fff;font-weight:bold;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.col-row{display:flex;align-items:center;gap:6px;background:#111;border:1px solid var(--border);border-radius:6px;padding:6px 10px}
+.col-row span{flex:1;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-form .col-row button{padding:4px 9px;background:#222;border:1px solid var(--border)}
 </style>
 </head>
 <body>
@@ -90,6 +94,7 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
     <div id="authContainer"><button class="btn-user" onclick="openAuthModal()">🔑 Giriş Yap / Üye Ol</button></div>
     <button class="btn-admin" onclick="openMovieModal()">➕ Film Ekle</button>
     <button class="btn-admin" onclick="openSeriesModal()">➕ Dizi Ekle</button>
+    <button class="btn-admin" onclick="openCollModal()">📚 Seri Filmler Ekle</button>
     <button class="btn-admin" onclick="openPendingModal()" style="background:#f5c518;color:#000">⏳ Yorumlar & Bildirimler</button>
   </div>
 </header>
@@ -103,6 +108,7 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
     <div class="type-tabs">
       <button class="tab-btn active" id="tabMovies" onclick="switchTab('movie')">Filmler</button>
       <button class="tab-btn" id="tabSeries" onclick="switchTab('series')">Diziler</button>
+      <button class="tab-btn" id="tabCollections" onclick="switchTab('collection')">Seri Filmler</button>
     </div>
     <div class="filter-bar">
       <input type="text" class="search-input" id="searchInput" placeholder="İçerik ara..." oninput="searchAndRender()">
@@ -117,8 +123,20 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
     <div class="pagination" id="paginationContainer"></div>
   </div>
 
-  <div class="watch-view" id="watchView">
+  <div class="watch-view" id="collView">
     <button class="back-btn" onclick="goHome()">⬅️ Geri Dön</button>
+    <div class="movie-info-box">
+      <h2 id="colViewTitle"></h2>
+      <p id="colViewDesc" style="margin-top:8px"></p>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-admin" style="background:#2d8cff" onclick="openCollModal(currentCollection.id)">✏️ Seriyi Düzenle</button>
+        <button class="btn-admin" style="background:#ff4757" onclick="deleteCollection()">🗑️ Seriyi Sil</button>
+      </div>
+    </div>
+    <div class="movies-grid" id="colViewGrid"></div>
+  </div>
+  <div class="watch-view" id="watchView">
+    <button class="back-btn" onclick="goBack()">⬅️ Geri Dön</button>
     <div class="server-switcher" id="serverSwitcher" style="display:none">
       <div style="display:flex;gap:10px">
         <button class="server-btn active" id="dubBtn" onclick="switchServer('dub')">🇹🇷 Türkçe Dublaj</button>
@@ -140,6 +158,7 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
         <span id="watchImdb" style="color:#f5c518;font-weight:bold">⭐ 8.5</span>
       </div>
       <p id="watchDesc">Açıklama...</p>
+      <div id="inCollections" style="margin-top:8px"></div>
       <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn-user" onclick="toggleWatchList('plan')">➕ İzleme Listeme Ekle</button>
         <button class="btn-user" onclick="toggleWatchList('completed')">✅ Bitirdim Olarak İşaretle</button>
@@ -307,6 +326,21 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
   </form>
 </div></div>
 
+<div class="modal" id="collModal"><div class="modal-content">
+  <span class="close-btn" onclick="closeModals()">&times;</span>
+  <h3 id="colHead">📚 Yeni Seri Filmler</h3>
+  <form class="admin-form" onsubmit="saveColl(event)">
+    <input type="text" id="colTitle" placeholder="Seri adı (örn: Örümcek Adam Serisi)" required>
+    <input type="url" id="colPoster" placeholder="Afiş URL (boşsa ilk filmin afişi kullanılır)">
+    <textarea id="colDesc" rows="2" placeholder="Açıklama (isteğe bağlı)"></textarea>
+    <span class="cat-label">Seriye film ekle (izleme sırasına göre):</span>
+    <input type="text" id="colSearch" placeholder="Film ara..." oninput="fillColPick()">
+    <div style="display:flex;gap:8px"><select id="colPick" style="flex:1"></select><button type="button" onclick="colAdd()" style="width:auto;white-space:nowrap">➕ Ekle</button></div>
+    <div id="colList" style="display:flex;flex-direction:column;gap:6px"></div>
+    <button type="submit">Seriyi Kaydet</button>
+  </form>
+</div></div>
+
 <div class="modal" id="adminModal"><div class="modal-content">
   <span class="close-btn" onclick="closeModals()">&times;</span>
   <h3>👑 Yönetici Girişi</h3>
@@ -337,9 +371,9 @@ window.CINEFLIX_CONFIG = {
     messagingSenderId: "110382528151",
     appId: "1:110382528151:web:2650e68d1f469e736c1bd2"
   },
-  tmdbKey: "b3fe27b55bdcab2c4a1df4001e02c2b4",        // isteğe bağlı: IMDb ile otomatik doldurma için TMDB anahtarı
+  tmdbKey: "",        // isteğe bağlı: IMDb ile otomatik doldurma için TMDB anahtarı
   adminPassword: "",  // Firebase açıkken kullanılmaz, boş bırak
-  contactEmail: "2ieuduwhjemm@gmail.com"    // isteğe bağlı: sitenin altında görünür
+  contactEmail: ""    // isteğe bağlı: sitenin altında görünür
 };
 /* ====== AYARLARIN SONU ====== */
 </script>
@@ -367,7 +401,10 @@ const itemsPerPage=10;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const genresOf=i=>(i.genres&&i.genres.length)?i.genres:(i.genre?[i.genre]:[]);
+const genresOf=i=>{
+  if(i.type==='collection'){const set=new Set();(i.itemIds||[]).forEach(id=>{const m=library.find(x=>x.id===id);if(m)genresOf(m).forEach(g=>set.add(g));});return [...set];}
+  return (i.genres&&i.genres.length)?i.genres:(i.genre?[i.genre]:[]);
+};
 const clean=o=>JSON.parse(JSON.stringify(o));
 
 /* ---------- BULUT (Firestore + Auth) ---------- */
@@ -620,16 +657,21 @@ function switchTab(tab){
   currentTab=tab;currentPage=1;
   $('tabMovies').classList.toggle('active',tab==='movie');
   $('tabSeries').classList.toggle('active',tab==='series');
+  $('tabCollections').classList.toggle('active',tab==='collection');
   renderContent();
 }
 function searchAndRender(){currentPage=1;renderContent();}
-function makeCard(item){
+function makeCard(item,onOpen){
   const card=document.createElement('div');card.className='movie-card';
-  card.innerHTML=`${item.featured?'<div class="feat-badge">👑</div>':''}<div class="lang-badge">🇹🇷/🇬🇧</div>
-    <img src="${esc(item.poster||DEFAULT_POSTER)}" class="movie-poster" alt="Afiş" onerror="this.src='${DEFAULT_POSTER}'">
+  const isCol=item.type==='collection';
+  let poster=item.poster&&item.poster!==DEFAULT_POSTER?item.poster:'';
+  if(!poster&&isCol){const f=(item.itemIds||[]).map(id=>library.find(x=>x.id===id)).find(Boolean);poster=f?f.poster:'';}
+  const n=isCol?(item.itemIds||[]).filter(id=>library.some(x=>x.id===id)).length:0;
+  card.innerHTML=`${item.featured?'<div class="feat-badge">👑</div>':''}<div class="lang-badge">${isCol?'📚':'🇹🇷/🇬🇧'}</div>
+    <img src="${esc(poster||DEFAULT_POSTER)}" class="movie-poster" alt="Afiş" onerror="this.src='${DEFAULT_POSTER}'">
     <div class="movie-details"><div class="movie-title">${esc(item.title)}</div>
-    <div class="movie-meta"><span class="g">${esc(genresOf(item).join(', '))}</span><span style="color:#f5c518">⭐ ${esc(item.imdb)}</span></div></div>`;
-  card.addEventListener('click',()=>openWatch(item));
+    <div class="movie-meta"><span class="g">${isCol?'📚 '+n+' film':esc(genresOf(item).join(', '))}</span>${isCol?'':`<span style="color:#f5c518">⭐ ${esc(item.imdb)}</span>`}</div></div>`;
+  card.addEventListener('click',()=>onOpen?onOpen():(isCol?openCollection(item):openWatch(item)));
   return card;
 }
 function renderFeatured(){
@@ -676,12 +718,15 @@ function renderContent(){
 
 /* ---------- İZLEME ---------- */
 function openWatch(item){
-  currentItem=item;homeView.style.display='none';watchView.style.display='block';window.scrollTo(0,0);
+  currentItem=item;homeView.style.display='none';$('collView').style.display='none';watchView.style.display='block';window.scrollTo(0,0);
   $('watchTitle').textContent=item.title;
   $('watchGenre').textContent=genresOf(item).join(' • ');
   $('watchLang').textContent=`${item.type==='movie'?'🎬 Film':'📺 Dizi'} | 🇹🇷 Dublaj & 🇬🇧 Altyazı`;
   $('watchImdb').textContent=`⭐ ${item.imdb}`;
   $('watchDesc').textContent=item.desc;
+  const cols=item.type==='movie'?library.filter(c=>c.type==='collection'&&(c.itemIds||[]).includes(item.id)):[];
+  $('inCollections').innerHTML=cols.map(c=>`<button class="btn-user" data-c="${esc(c.id)}" style="margin:4px 6px 0 0">📚 ${esc(c.title)}</button>`).join('');
+  $('inCollections').querySelectorAll('button').forEach(b=>b.onclick=()=>{cameFromCollection=null;openCollection(library.find(x=>x.id===b.dataset.c));});
   document.querySelector('.delete-item-btn').style.display=isAdmin?'inline-block':'none';
   document.querySelector('.edit-item-btn').style.display=isAdmin?'inline-block':'none';
   document.querySelector('.feature-item-btn').style.display=isAdmin?'inline-block':'none';
@@ -752,7 +797,7 @@ function toggleFullscreen(){
   const req=box.requestFullscreen||box.webkitRequestFullscreen;
   if(req)Promise.resolve(req.call(box)).catch(()=>box.classList.add('pseudo-full'));else box.classList.add('pseudo-full');
 }
-function goHome(){watchView.style.display='none';homeView.style.display='block';$('playerBox').innerHTML='';renderContent();}
+function goHome(){cameFromCollection=null;currentCollection=null;watchView.style.display='none';$('collView').style.display='none';homeView.style.display='block';$('playerBox').innerHTML='';renderContent();}
 
 /* ---------- BİLDİRİM & YORUM ---------- */
 function openReportModal(){$('reportModal').style.display='flex';}
@@ -1024,6 +1069,83 @@ async function autoFill(p){
   }catch(e){alert("Otomatik doldurma başarısız: "+e.message);}
   finally{btn.disabled=false;btn.textContent='🔎 Otomatik doldur';}
 }
+let currentCollection=null,cameFromCollection=null,colEditId=null,colList=[];
+function goBack(){
+  const c=cameFromCollection&&library.find(i=>i.id===cameFromCollection.id);
+  if(c){openCollection(c);return;}
+  goHome();
+}
+function openCollection(c){
+  if(!c){goHome();return;}
+  currentCollection=c;cameFromCollection=null;
+  homeView.style.display='none';watchView.style.display='none';$('collView').style.display='block';
+  window.scrollTo(0,0);$('playerBox').innerHTML='';
+  $('colViewTitle').textContent='📚 '+c.title;$('colViewDesc').textContent=c.desc||'';
+  const grid=$('colViewGrid');grid.innerHTML='';
+  const movies=(c.itemIds||[]).map(id=>library.find(x=>x.id===id)).filter(Boolean);
+  if(!movies.length)grid.innerHTML='<p style="color:var(--text-sub)">Bu seride henüz film yok.</p>';
+  movies.forEach((m,i)=>{
+    const card=makeCard(m,()=>{cameFromCollection=c;openWatch(m);});
+    card.insertAdjacentHTML('afterbegin',`<div class="order-badge">${i+1}</div>`);
+    grid.appendChild(card);
+  });
+}
+function openCollModal(id){
+  if(!isAdmin)return;
+  colEditId=id||null;
+  const c=id?library.find(x=>x.id===id):null;
+  $('colHead').textContent=c?'✏️ Seriyi Düzenle':'📚 Yeni Seri Filmler';
+  $('colTitle').value=c?c.title:'';
+  $('colPoster').value=(c&&c.poster&&c.poster!==DEFAULT_POSTER)?c.poster:'';
+  $('colDesc').value=c?(c.desc||''):'';
+  colList=c?(c.itemIds||[]).filter(i=>library.some(x=>x.id===i)):[];
+  $('colSearch').value='';fillColPick();renderColList();
+  $('collModal').style.display='flex';
+}
+function fillColPick(){
+  const q=$('colSearch').value.trim().toLocaleLowerCase('tr');
+  const opts=library.filter(m=>m.type==='movie'&&!colList.includes(m.id)&&m.title.toLocaleLowerCase('tr').includes(q));
+  $('colPick').innerHTML=opts.length?opts.map(m=>`<option value="${esc(m.id)}">${esc(m.title)}</option>`).join(''):'<option value="">Eklenecek film yok</option>';
+}
+function colAdd(){
+  const v=$('colPick').value;if(!v)return;
+  colList.push(v);$('colSearch').value='';fillColPick();renderColList();
+}
+function renderColList(){
+  const box=$('colList');
+  if(!colList.length){box.innerHTML='<p style="color:var(--text-sub);font-size:.85rem">Henüz film eklenmedi.</p>';return;}
+  box.innerHTML=colList.map((id,i)=>{
+    const m=library.find(x=>x.id===id);
+    return `<div class="col-row"><b>${i+1}.</b><span>${esc(m?m.title:'?')}</span>
+      <button type="button" onclick="colMove(${i},-1)">▲</button><button type="button" onclick="colMove(${i},1)">▼</button><button type="button" onclick="colRemove(${i})" style="color:#ff4757">✕</button></div>`;
+  }).join('');
+}
+function colMove(i,d){const j=i+d;if(j<0||j>=colList.length)return;[colList[i],colList[j]]=[colList[j],colList[i]];renderColList();}
+function colRemove(i){colList.splice(i,1);fillColPick();renderColList();}
+function saveColl(e){
+  e.preventDefault();
+  if(!isAdmin)return;
+  if(!colList.length){alert("Seriye en az bir film eklemelisin.");return;}
+  let c=colEditId?library.find(x=>x.id===colEditId):null;
+  if(!c){c={id:'col_'+Date.now(),type:'collection',createdAt:Date.now()};library.unshift(c);}
+  c.title=$('colTitle').value.trim();
+  c.poster=$('colPoster').value.trim();
+  c.desc=$('colDesc').value.trim();
+  c.itemIds=[...colList];
+  persist(c);closeModals();
+  if(colEditId&&$('collView').style.display==='block')openCollection(c);
+  else{switchTab('collection');}
+  alert("Seri kaydedildi!");
+}
+function deleteCollection(){
+  if(!isAdmin||!currentCollection)return;
+  if(!confirm("Bu seriyi silmek istediğine emin misin? İçindeki filmler silinmez."))return;
+  const id=currentCollection.id;
+  library=library.filter(i=>i.id!==id);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(library));
+  if(cloud)cloud.deleteDoc(cloud.doc(cloud.db,'library',id)).catch(e=>alert('Silinemedi: '+e.message));
+  goHome();switchTab('collection');
+}
 function deleteCurrentItem(){
   if(!confirm("Bu içeriği silmek istediğinize emin misiniz?"))return;
   const id=currentItem.id;
@@ -1036,7 +1158,7 @@ function deleteCurrentItem(){
 function openAuthModal(){refreshAuthFields();$('authModal').style.display='flex';}
 function openMovieModal(){$('movieModal').style.display='flex';}
 function openSeriesModal(){$('seriesModal').style.display='flex';toggleSeriesInputs();}
-function closeModals(){['movieModal','seriesModal','editModal','adminModal','pendingModal','authModal','profileModal','reportModal'].forEach(id=>$(id).style.display='none');}
+function closeModals(){['movieModal','seriesModal','collModal','editModal','adminModal','pendingModal','authModal','profileModal','reportModal'].forEach(id=>$(id).style.display='none');}
 
 renderCatBoxes();updateAuthUI();renderContent();
 if(CFG.contactEmail){const m=$('contactMail');m.textContent='📧 '+CFG.contactEmail;m.style.display='block';}
