@@ -10,4 +10,5 @@ window.CINEFLIX_CONFIG = {
   adminPassword: "",
     contactEmail: "2ieuduwhjemm@gmail.com",
   tmdbKey: "b3fe27b55bdcab2c4a1df4001e02c2b4"
+  sandbox: true,
 };
