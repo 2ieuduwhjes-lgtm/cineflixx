@@ -195,11 +195,13 @@ footer{background:#0d0d0d;border-top:1px solid var(--border);margin-top:60px;pad
   <span class="close-btn" onclick="closeModals()">&times;</span>
   <h3 id="authTitle">Kullanıcı Girişi</h3>
   <form class="admin-form" onsubmit="handleAuth(event)">
-    <input type="text" id="authUsername" placeholder="Kullanıcı Adı" required>
+    <input type="text" id="authUsername" placeholder="Kullanıcı Adı" required autocomplete="username">
+    <input type="email" id="authEmail" placeholder="E-posta" style="display:none" autocomplete="email">
     <input type="password" id="authPassword" placeholder="Şifre" required>
     <div id="avatarInputBox" style="display:none"><input type="url" id="authAvatar" placeholder="Profil Resmi URL (İsteğe Bağlı)"></div>
     <button type="submit" id="authSubmitBtn">Giriş Yap</button>
   </form>
+  <p id="forgotRow" style="display:none;margin-top:12px;font-size:.85rem;text-align:center"><a href="#" onclick="forgotPassword();return false" style="color:var(--text-sub)">Şifremi unuttum</a></p>
   <p style="margin-top:15px;font-size:.85rem;text-align:center;color:var(--text-sub)">
     <span id="authToggleText">Hesabınız yok mu?</span>
     <a href="#" onclick="toggleAuthMode();return false" id="authToggleLink" style="color:var(--accent);font-weight:bold">Üye Olun</a>
@@ -408,11 +410,87 @@ window.onCloudReady=function(fb){
     if(currentItem){const n=library.find(i=>i.id===currentItem.id);if(n)currentItem=n;}
     renderContent();setStatus('☁️ Bulut bağlı');
   },err=>setStatus('⚠️ Bulut hatası: '+err.code));
-  fb.onAuth(fb.auth,async user=>{
-    if(user&&await checkAdminDoc(user))setAdmin(true);
-    else{if(isAdmin||!unsubC)setAdmin(false);}
+  localStorage.removeItem('cineflix_current_user');
+  fb.onAuth(fb.auth,user=>{
+    if(registering)return;
+    if(user)applyAuthUser(user);
+    else{currentUser=null;setAdmin(false);}
   });
 };
+let registering=false;
+const RESERVED=['admin','yönetici','yonetici','cineflix'];
+const nameKey=n=>n.trim().toLocaleLowerCase('tr');
+async function loadProfile(user,adm){
+  let p=null;
+  try{const d=await cloud.getDoc(cloud.doc(cloud.db,'users',user.uid));if(d.exists())p=d.data();}catch(e){console.error(e);}
+  if(!p){
+    p={username:adm?'Yönetici':(user.displayName||(user.email||'uye').split('@')[0]).slice(0,20),avatar:'',planToWatch:[],completed:[],createdAt:Date.now()};
+    try{await cloud.setDoc(cloud.doc(cloud.db,'users',user.uid),p);}catch(e){console.error(e);}
+  }
+  currentUser={uid:user.uid,email:user.email,username:p.username,avatar:p.avatar||(DEFAULT_AVATAR+encodeURIComponent(p.username)),
+    planToWatch:p.planToWatch||[],completed:p.completed||[],createdAt:p.createdAt||Date.now(),role:adm?'admin':'user'};
+}
+async function applyAuthUser(user){
+  const adm=await checkAdminDoc(user);
+  await loadProfile(user,adm);
+  setAdmin(adm);
+}
+function authMsg(e){
+  const m={'auth/email-already-in-use':'Bu e-posta zaten kayıtlı.','auth/invalid-email':'E-posta adresi geçersiz.','auth/weak-password':'Şifre en az 6 karakter olmalı.',
+    'auth/invalid-credential':'E-posta veya şifre hatalı.','auth/wrong-password':'E-posta veya şifre hatalı.','auth/user-not-found':'E-posta veya şifre hatalı.',
+    'auth/too-many-requests':'Çok fazla deneme yapıldı, biraz bekle.','auth/unauthorized-domain':'Bu alan adı Firebase\'de yetkili değil (Authentication → Ayarlar → Yetkili alan adları).',
+    'auth/network-request-failed':'İnternet bağlantısı yok.','permission-denied':'İzin reddedildi (kurallar güncel mi?).'};
+  return m[e.code]||e.code||e.message;
+}
+async function cloudAuth(){
+  const email=$('authEmail').value.trim(),pw=$('authPassword').value;
+  try{
+    if(isRegisterMode){
+      const u=$('authUsername').value.trim();
+      if(!/^[A-Za-z0-9ÇĞİÖŞÜçğıöşü][A-Za-z0-9ÇĞİÖŞÜçğıöşü_.-]{2,19}$/.test(u)){alert("Kullanıcı adı 3-20 karakter olmalı. Harf, rakam, _ . - kullanılabilir, boşluk olmaz.");return;}
+      if(RESERVED.includes(nameKey(u))){alert("Bu kullanıcı adı kullanılamaz.");return;}
+      if(pw.length<6){alert("Şifre en az 6 karakter olmalı.");return;}
+      if((await cloud.getDoc(cloud.doc(cloud.db,'usernames',nameKey(u)))).exists()){alert("Bu kullanıcı adı zaten alınmış!");return;}
+      registering=true;
+      const cred=await cloud.signUp(cloud.auth,email,pw);
+      try{
+        await cloud.setDoc(cloud.doc(cloud.db,'usernames',nameKey(u)),{uid:cred.user.uid});
+        await cloud.setDoc(cloud.doc(cloud.db,'users',cred.user.uid),{username:u,avatar:$('authAvatar').value.trim().slice(0,300),planToWatch:[],completed:[],createdAt:Date.now()});
+      }catch(err){await cloud.deleteUser(cred.user).catch(()=>{});throw err;}
+      registering=false;
+      await applyAuthUser(cred.user);
+      alert("Kayıt başarılı! Hoş geldin "+u);
+    }else{
+      await cloud.signIn(cloud.auth,email,pw);
+      alert("Giriş başarılı!");
+    }
+    $('authPassword').value='';closeModals();
+  }catch(err){registering=false;alert("İşlem başarısız: "+authMsg(err));}
+}
+async function forgotPassword(){
+  const email=$('authEmail').value.trim();
+  if(!email){alert("Önce e-posta adresini yaz.");return;}
+  try{await cloud.resetPassword(cloud.auth,email);alert("Şifre sıfırlama bağlantısı e-postana gönderildi. Spam klasörüne de bak.");}
+  catch(err){alert("Gönderilemedi: "+authMsg(err));}
+}
+function refreshAuthFields(){
+  const needName=isRegisterMode||!cloud;
+  $('authUsername').style.display=needName?'block':'none';$('authUsername').required=needName;
+  $('authEmail').style.display=cloud?'block':'none';$('authEmail').required=!!cloud;
+  $('forgotRow').style.display=(cloud&&!isRegisterMode)?'block':'none';
+}
+function saveProfile(){
+  if(cloud&&currentUser&&currentUser.uid){
+    const av=currentUser.avatar&&currentUser.avatar.indexOf(DEFAULT_AVATAR)!==0?currentUser.avatar:'';
+    cloud.setDoc(cloud.doc(cloud.db,'users',currentUser.uid),{username:currentUser.username,avatar:av.slice(0,300),
+      planToWatch:currentUser.planToWatch||[],completed:currentUser.completed||[],createdAt:currentUser.createdAt||Date.now()})
+      .catch(e=>alert("Profil kaydedilemedi: "+authMsg(e)));
+    return;
+  }
+  localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));
+  const i=users.findIndex(x=>x.username===currentUser.username);
+  if(i!==-1){users[i]=currentUser;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+}
 function persist(item){
   localStorage.setItem(STORAGE_KEY,JSON.stringify(library));
   if(cloud&&item)cloud.setDoc(cloud.doc(cloud.db,'library',item.id),clean(item)).catch(e=>alert('Buluta kaydedilemedi: '+e.message));
@@ -443,6 +521,7 @@ function checkAdminSecret(){
   logoClickCount++;setTimeout(()=>{logoClickCount=0},1000);
   if(logoClickCount>=3){
     if(isAdmin){alert("Zaten yönetici olarak giriş yaptın.");return;}
+    if(cloud){openAuthModal();return;}
     $('adminEmail').style.display=cloud?'block':'none';
     $('adminEmail').required=!!cloud;
     $('adminModal').style.display='flex';
@@ -485,11 +564,13 @@ function toggleAuthMode(){
   $('authTitle').textContent=isRegisterMode?'Yeni Üye Kaydı':'Kullanıcı Girişi';
   $('authSubmitBtn').textContent=isRegisterMode?'Kayıt Ol':'Giriş Yap';
   $('avatarInputBox').style.display=isRegisterMode?'block':'none';
+  refreshAuthFields();
   $('authToggleText').textContent=isRegisterMode?'Zaten hesabınız var mı?':'Hesabınız yok mu?';
   $('authToggleLink').textContent=isRegisterMode?'Giriş Yapın':'Üye Olun';
 }
 function handleAuth(e){
   e.preventDefault();
+  if(cloud){cloudAuth();return;}
   const u=$('authUsername').value.trim(),p=$('authPassword').value.trim(),av=$('authAvatar').value.trim();
   if(isRegisterMode){
     if(users.find(x=>x.username===u)){alert("Bu kullanıcı adı zaten alınmış!");return;}
@@ -505,7 +586,7 @@ function handleAuth(e){
   updateAuthUI();closeModals();if(currentItem)openWatch(currentItem);
 }
 function logout(){
-  if(cloud&&isAdmin)cloud.signOut(cloud.auth);
+  if(cloud)cloud.signOut(cloud.auth);
   currentUser=null;isAdmin=false;localStorage.removeItem('cineflix_current_user');
   document.querySelectorAll('.btn-admin').forEach(b=>b.style.display='none');
   updateAuthUI();closeModals();if(currentItem)openWatch(currentItem);
@@ -522,9 +603,7 @@ function openProfileModal(){
 }
 function updateAvatar(){
   const url=$('newAvatarUrl').value.trim();if(!url||!currentUser)return;
-  currentUser.avatar=url;localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));
-  const i=users.findIndex(x=>x.username===currentUser.username);
-  if(i!==-1){users[i].avatar=url;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+  currentUser.avatar=url;saveProfile();
   updateAuthUI();openProfileModal();
 }
 function toggleWatchList(type){
@@ -534,9 +613,7 @@ function toggleWatchList(type){
   const idx=list.indexOf(currentItem.id);
   if(idx===-1){list.push(currentItem.id);alert(type==='plan'?"İzleme listenize eklendi!":"Bitirdikleriniz arasına eklendi!");}
   else{list.splice(idx,1);alert("Listeden çıkarıldı.");}
-  localStorage.setItem('cineflix_current_user',JSON.stringify(currentUser));
-  const i=users.findIndex(x=>x.username===currentUser.username);
-  if(i!==-1){users[i]=currentUser;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+  saveProfile();
 }
 
 /* ---------- LİSTELEME ---------- */
@@ -693,7 +770,7 @@ function submitComment(e){
   if(!currentUser){alert("Yorum yapabilmek için önce üye girişi yapmalısınız!");openAuthModal();return;}
   const text=$('commentText').value.trim().slice(0,500);if(!text)return;
   saveComment({id:Date.now()+Math.random().toString(36).slice(2,6),itemId:currentItem.id,itemTitle:currentItem.title.slice(0,200),
-    author:currentUser.username.slice(0,40),avatar:(currentUser.avatar||(DEFAULT_AVATAR+currentUser.username)).slice(0,300),
+    uid:currentUser.uid||'',author:currentUser.username.slice(0,40),avatar:(currentUser.avatar||(DEFAULT_AVATAR+currentUser.username)).slice(0,300),
     text,status:'pending',reply:'',createdAt:Date.now()});
   $('commentText').value='';
   alert("Yorumunuz gönderildi! Yönetici onayından sonra yayınlanacaktır.");
@@ -957,7 +1034,7 @@ function deleteCurrentItem(){
   currentItem=null;goHome();
 }
 
-function openAuthModal(){$('authModal').style.display='flex';}
+function openAuthModal(){refreshAuthFields();$('authModal').style.display='flex';}
 function openMovieModal(){$('movieModal').style.display='flex';}
 function openSeriesModal(){$('seriesModal').style.display='flex';toggleSeriesInputs();}
 function closeModals(){['movieModal','seriesModal','editModal','adminModal','pendingModal','authModal','profileModal','reportModal'].forEach(id=>$(id).style.display='none');}
@@ -969,7 +1046,7 @@ if(CFG.contactEmail){const m=$('contactMail');m.textContent='📧 '+CFG.contactE
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore,collection,doc,setDoc,getDoc,deleteDoc,onSnapshot,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,deleteUser,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 try{
   if(!window.CINEFLIX_CONFIG)throw new Error('firebase-config.js yüklenemedi veya içinde yazım hatası var');
   const cfg=window.FIREBASE_CONFIG;
@@ -979,7 +1056,7 @@ try{
   if(bad(cfg.projectId))throw new Error('projectId boş veya örnek değer');
   const app=initializeApp(cfg);
   window.onCloudReady({db:getFirestore(app),auth:getAuth(app),collection,doc,setDoc,getDoc,deleteDoc,onSnapshot,query,where,
-    signIn:signInWithEmailAndPassword,signOut,onAuth:onAuthStateChanged});
+    signIn:signInWithEmailAndPassword,signUp:createUserWithEmailAndPassword,resetPassword:sendPasswordResetEmail,deleteUser,signOut,onAuth:onAuthStateChanged});
 }catch(e){window.onCloudFail(e.message);}
 </script>
 </body>
